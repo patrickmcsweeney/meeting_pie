@@ -1,0 +1,228 @@
+<html>
+<head>
+<title>Meeting pie</title>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script type="text/javascript" src="jquery-tmpl.js"></script>
+<style>
+	ul {
+		list-style:none;
+		padding: 0;
+	}
+	input[name=time]{
+		width: 5ex;
+	}
+	.done {
+		text-decoration: line-through;
+	}
+	.done input {
+		text-decoration: none;
+	}
+	ul#agenda_items {
+		max-width: 300px;
+	}
+	ul#agenda_items li {
+		padding: 10px;
+		border-radius: 5px;	
+		margin: 8px;
+	}
+	li .edit {
+		float:right;
+	}
+	.agenda, .pie {
+		float: left;
+	}
+	#start_button {
+		display:block;
+		margin:auto;
+	}
+</style>
+</head>
+<body>
+<h1>Meeting pie - Demo meeting</h1>
+<div class="agenda">
+	<h2>Agenda</h2>
+	<ul id="agenda_items">
+	</ul>
+	<a href="#" onclick="addAgendaItem();false;">Add agenda item</a>
+</div>
+<div class="pie">
+	<canvas id="meeting_pie" width="800" height="600"></canvas>
+
+	<input id="start_button" type="button" value="Start meeting" />
+</div>
+<script type="text/javascript">
+
+function pie()
+{
+	var canvas = document.getElementById("meeting_pie"); 
+	var ctx = canvas.getContext('2d');
+	var h = canvas.height;
+	var w = canvas.width;
+	var radius = h / 2 - 5;
+	var centerx = w / 2;
+	var centery = h / 2;
+	document.total = 0;
+	document.completed = 0;
+	var datalist = $("ul#agenda_items li");
+
+	for(var i=0; i < datalist.length; i++) { 
+		var item = $(datalist[i]).data("obj");
+		document.total += parseInt(item.time); 
+		if(item.active) 
+		{
+			document.completed += item.time;
+		}
+	}; 
+	var lastend=2*Math.PI;
+	var offset = Math.PI/2; //start at north
+	ctx.clearRect(0,0,w,h);
+	for(var i = datalist.length-1; i>=0; i--)
+	{
+		var item = $(datalist[i]).data("obj");
+		if( !item.active ) { continue; }
+		var thispart = parseInt(item.time); 
+		ctx.beginPath();
+		ctx.fillStyle = item.color;
+		ctx.moveTo(centerx,centery);
+		var arcsector = Math.PI * ( (document.total - document.elapsed)/document.total * 2 * thispart / document.total);
+		ctx.arc(centerx, centery, radius, lastend-offset, lastend-offset - arcsector, true);
+		ctx.lineTo(centerx, centery);
+		ctx.fill();
+		ctx.stroke();
+		ctx.closePath();		
+		lastend -= arcsector;	
+	}
+}
+
+
+function addAgendaItem()
+{
+	new AgendaItem();
+}
+
+function tickingPie()
+{
+	pie()
+	document.elapsed+= 0.1;
+	if(document.elapsed > document.total)
+	{
+		document.elapsed = 0;
+		clearInterval(document.tickId);
+		pie();
+	}
+}
+
+function AgendaItem() 
+{
+	this.randomPastel = function()
+	{
+		var color = "rgb(";
+		for(var i=0; i<3; i++)
+		{
+			color += (Math.floor(Math.random()*112) + 143)+",";
+		}
+		color = color.substring(0,color.length-1);
+		color += ")";
+		return color;
+		
+	}
+
+	this.eventEdit = function(event) 
+	{
+		event.data.edit();
+	}
+
+	this.edit = function()
+	{
+		$('#'+this.id).html("title: ");
+		var title = $("<input type='text' value='"+this.title+"' name='title' />");
+		$('#'+this.id).append(title);
+		title.focus();
+		$('#'+this.id).append(" - <input name='time' value='"+this.time+"' type='number' max='120' min='3' maxlength='3' step='3' /> minutes ");
+		$('#'+this.id+' input').keypress(this, function(event){
+			if(event.which == 13){//the enter key
+				event.data.save();
+				new AgendaItem();
+			}
+		});
+		var save = $('<input type="button" value="save" />').click(this, this.eventSave);
+		$('#'+this.id).append(save);
+
+		// delete is a js keyword delete_
+		var delete_ = $('<input type="button" value="delete" />').click(this, this.eventDelete);
+		$('#'+this.id).append(delete_);
+	}
+
+	this.eventSave = function(event) 
+	{
+		event.data.save();
+	}
+	
+	this.save = function()
+	{
+		this.title = $('#'+this.id+' input[name=title]').val()
+		this.time = $('#'+this.id+' input[name=time]').val()
+		this.renderItem();
+		pie();
+	}
+
+	this.eventDelete = function(event)
+	{
+		event.data.delete();
+	}
+
+	this.delete = function()
+	{
+		$('#'+this.id).remove();
+		pie();
+	}
+	
+	this.eventDone = function(event) 
+	{
+		event.data.done();
+	}
+
+	this.done = function()
+	{
+		this.active = !this.active;
+		this.renderItem();
+		pie();
+	}
+
+	this.renderItem = function()
+	{
+		var item = $('#'+this.id);
+		var itemContent = $('<span>'+this.title+' - '+this.time + ' mins </span>');
+		if( !this.active ) 
+		{
+			itemContent.addClass("done");
+		}
+		var edit = $('<input class="edit" type="button" value="Edit" />');
+		edit.click(this, this.eventEdit)
+		itemContent.append(edit);
+		item.html(itemContent);
+	}
+
+	this.id = document.identifier++;
+	this.title = "";
+	this.description = "";
+	this.time = 15;
+	this.active = true;
+	this.color = this.randomPastel();
+
+	var itemHtml = $("<li id='"+this.id+"'></li>").css("background-color", this.color);
+	this.renderItem();
+	itemHtml.data("obj", this);
+	$('#agenda_items').append(itemHtml);
+	itemHtml.click(this, this.eventDone);
+	this.edit();
+}
+
+datalist = new Array();
+
+document.elapsed = 0;
+document.identifier = 1;
+$("#start_button").click(function(){document.tickId = setInterval("tickingPie()", 100)}); 
+</script>
+</body>
+</html>
