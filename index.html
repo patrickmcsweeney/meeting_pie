@@ -20,6 +20,9 @@
 	ul#agenda_items {
 		max-width: 300px;
 	}
+	ul#agenda_items li span{
+		cursor: pointer;
+	}
 	ul#agenda_items li {
 		padding: 10px;
 		border-radius: 5px;	
@@ -62,15 +65,13 @@ function pie()
 	var centerx = w / 2;
 	var centery = h / 2;
 	document.total = 0;
-	document.completed = 0;
 	var datalist = $("ul#agenda_items li");
 
 	for(var i=0; i < datalist.length; i++) { 
 		var item = $(datalist[i]).data("obj");
-		document.total += parseInt(item.time); 
-		if(item.active) 
+		if(item.active)
 		{
-			document.completed += item.time;
+			document.total += parseInt(item.time); 
 		}
 	}; 
 	var lastend=2*Math.PI;
@@ -103,7 +104,7 @@ function addAgendaItem()
 function tickingPie()
 {
 	pie()
-	document.elapsed+= 0.1;
+	document.elapsed+= 0.001;
 	if(document.elapsed > document.total)
 	{
 		document.elapsed = 0;
@@ -162,7 +163,7 @@ function AgendaItem()
 	{
 		this.title = $('#'+this.id+' input[name=title]').val()
 		this.time = $('#'+this.id+' input[name=time]').val()
-		this.renderItem();
+		$('#'+this.id).html(this.renderItem());
 		pie();
 	}
 
@@ -185,22 +186,22 @@ function AgendaItem()
 	this.done = function()
 	{
 		this.active = !this.active;
-		this.renderItem();
+		$('#'+this.id).html(this.renderItem());
 		pie();
 	}
 
 	this.renderItem = function()
 	{
-		var item = $('#'+this.id);
 		var itemContent = $('<span>'+this.title+' - '+this.time + ' mins </span>');
 		if( !this.active ) 
 		{
 			itemContent.addClass("done");
 		}
+		itemContent.click(this, this.eventDone);
 		var edit = $('<input class="edit" type="button" value="Edit" />');
 		edit.click(this, this.eventEdit)
 		itemContent.append(edit);
-		item.html(itemContent);
+		return itemContent;
 	}
 
 	this.id = document.identifier++;
@@ -211,10 +212,9 @@ function AgendaItem()
 	this.color = this.randomPastel();
 
 	var itemHtml = $("<li id='"+this.id+"'></li>").css("background-color", this.color);
-	this.renderItem();
+	itemHtml.append(this.renderItem());
 	itemHtml.data("obj", this);
 	$('#agenda_items').append(itemHtml);
-	itemHtml.click(this, this.eventDone);
 	this.edit();
 }
 
