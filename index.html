@@ -8,7 +8,7 @@
 		padding: 0;
 	}
 	input[name=time]{
-		width: 5ex;
+		width: 7ex;
 	}
 	.done {
 		text-decoration: line-through;
@@ -51,6 +51,7 @@
 	<canvas id="meeting_pie" width="800" height="600"></canvas>
 
 	<input id="start_button" type="button" value="Start meeting" />
+	<!--<input id="reset_button" type="button" value="Reset pie chart" />-->
 </div>
 <script type="text/javascript">
 
@@ -68,7 +69,7 @@ function pie()
 
 	for(var i=0; i < datalist.length; i++) { 
 		var item = $(datalist[i]).data("obj");
-		if(item.active)
+		if(item.active && item.finalised)
 		{
 			document.total += parseInt(item.time); 
 		}
@@ -79,7 +80,7 @@ function pie()
 	for(var i = datalist.length-1; i>=0; i--)
 	{
 		var item = $(datalist[i]).data("obj");
-		if( !item.active ) { continue; }
+		if( !item.active || !item.finalised) { continue; }
 		var thispart = parseInt(item.time); 
 		ctx.beginPath();
 		ctx.fillStyle = item.color;
@@ -102,7 +103,7 @@ function addAgendaItem()
 
 function tickingPie()
 {
-	pie()
+	pie();
 	document.elapsed+= 0.001;
 	if(document.elapsed > document.total)
 	{
@@ -112,7 +113,7 @@ function tickingPie()
 	}
 }
 
-function AgendaItem() 
+function AgendaItem(defaultTime) 
 {
 	this.randomPastel = function()
 	{
@@ -138,11 +139,12 @@ function AgendaItem()
 		var title = $("<input type='text' value='"+this.title+"' name='title' />");
 		$('#'+this.id).append(title);
 		title.focus();
-		$('#'+this.id).append(" - <input name='time' value='"+this.time+"' type='number' max='120' min='3' maxlength='3' step='3' /> minutes ");
+		$('#'+this.id).append(" - <input name='time' value='"+this.time+"' type='number' max='120' min='3' length='5' step='3' /> minutes ");
 		$('#'+this.id+' input').keypress(this, function(event){
 			if(event.which == 13){//the enter key
+                event.data.finalised = true;
 				event.data.save();
-				new AgendaItem();
+				new AgendaItem(event.data.time);
 			}
 		});
 		var save = $('<input type="button" value="save" />').click(this, this.eventSave);
@@ -206,8 +208,9 @@ function AgendaItem()
 	this.id = document.identifier++;
 	this.title = "";
 	this.description = "";
-	this.time = 15;
+	this.time = typeof defaultTime !== 'undefined' ? defaultTime : 15;
 	this.active = true;
+    this.finalised = false;
 	this.color = this.randomPastel();
 
 	var itemHtml = $("<li id='"+this.id+"'></li>").css("background-color", this.color);
@@ -221,7 +224,24 @@ datalist = new Array();
 
 document.elapsed = 0;
 document.identifier = 1;
-$("#start_button").click(function(){document.tickId = setInterval("tickingPie()", 100)}); 
+
+var running = false;
+var startTime;
+function startPie() {
+    if (running) {return false;}
+    running = true;
+    startTime = new Date();
+    document.tickId = setInterval("tickingPie()", 100);
+}
+
+function resetPie() {
+    running = false;
+    document.tickId = null;
+}
+
+$("#start_button").click(startPie);
+//$("#reset_button").click(resetPie);
+
 </script>
 </body>
 </html>
