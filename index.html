@@ -37,6 +37,9 @@
 		display:block;
 		margin:auto;
 	}
+    #timer {
+        font-size: 48pt;
+    }
 </style>
 </head>
 <body>
@@ -53,7 +56,21 @@
 	<input id="start_button" type="button" value="Start meeting" />
 	<!--<input id="reset_button" type="button" value="Reset pie chart" />-->
 </div>
+<div id="timer">
+</div>
 <script type="text/javascript">
+
+function updateTimer() {
+    newValue = document.total - document.elapsed;
+    var hours = Math.floor(newValue / 60);
+    var mins = Math.ceil(newValue % 60);
+    if (mins <= 9) {mins = '0' + mins;}
+    if (running) {
+        $('#timer').text("Remaining: " + hours + ":" + mins);
+    } else {
+        $('#timer').text("Total time: " + hours + ":" + mins);
+    }
+}
 
 function pie()
 {
@@ -93,6 +110,7 @@ function pie()
 		ctx.closePath();		
 		lastend -= arcsector;	
 	}
+    updateTimer();
 }
 
 
@@ -144,6 +162,7 @@ function AgendaItem(defaultTime)
 			if(event.which == 13){//the enter key
                 event.data.finalised = true;
 				event.data.save();
+                updateTimer();
 				new AgendaItem(event.data.time);
 			}
 		});
