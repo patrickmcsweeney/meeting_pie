@@ -60,10 +60,12 @@
 </div>
 <script type="text/javascript">
 
-function updateTimer() {
+// Update the countdown timer to show time remaining in meeting
+function updateTimer()
+{
     newValue = document.total - document.elapsed;
-    var hours = Math.floor(newValue / 60);
-    var mins = Math.ceil(newValue % 60);
+    var hours = Math.max(0, Math.floor(newValue / 60));
+    var mins = Math.max(0, Math.ceil(newValue % 60));
     if (mins <= 9) {mins = '0' + mins;}
     if (running) {
         $('#timer').text("Remaining: " + hours + ":" + mins);
@@ -72,6 +74,7 @@ function updateTimer() {
     }
 }
 
+// Update the pie chart 
 function pie()
 {
 	var canvas = document.getElementById("meeting_pie"); 
@@ -90,7 +93,7 @@ function pie()
 		{
 			document.total += parseInt(item.time); 
 		}
-	}; 
+	};
 	var lastend=2*Math.PI;
 	var offset = Math.PI/2; //start at north
 	ctx.clearRect(0,0,w,h);
@@ -121,14 +124,20 @@ function addAgendaItem()
 
 function tickingPie()
 {
+
+    if (running && document.total <= 0) {
+        running = false;
+        clearInterval(document.tickId);
+        return;
+    }
+    now = new Date();
+    if (typeof document.started === 'undefined') {
+        document.elapsed = 0;
+    } else {
+        // Date difference is in milliseconds, convert to minutes
+        document.elapsed = (now - document.started) / 60000;
+    }
 	pie();
-	document.elapsed+= 0.001;
-	if(document.elapsed > document.total)
-	{
-		document.elapsed = 0;
-		clearInterval(document.tickId);
-		pie();
-	}
 }
 
 function AgendaItem(defaultTime) 
@@ -249,7 +258,7 @@ var startTime;
 function startPie() {
     if (running) {return false;}
     running = true;
-    startTime = new Date();
+    document.started = new Date();
     document.tickId = setInterval("tickingPie()", 100);
 }
 
